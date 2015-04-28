@@ -28,18 +28,18 @@ local function write32(num)
     .. char(band(num, 0xff))
 end
 
-local function read16(data)
+local function read16(data, offset)
   return bor(
-    lshift(byte(data, 1), 8),
-    byte(data, 2))
+    lshift(byte(data, offset), 8),
+    byte(data, offset + 1))
 end
 
-local function read32(data)
+local function read32(data, offset)
   return bor(
-    lshift(byte(data, 1), 24),
-    lshift(byte(data, 2), 16),
-    lshift(byte(data, 3), 8),
-    byte(data, 4))
+    lshift(byte(data, offset), 24),
+    lshift(byte(data, offset + 1), 16),
+    lshift(byte(data, offset + 2), 8),
+    byte(data, offset + 3))
 end
 
 local function encode(value)
@@ -158,19 +158,19 @@ exports.encode = encode
 
 local readmap, readarray
 
-local function decode(data)
-  local c = byte(data, 1)
+local function decode(data, offset)
+  local c = byte(data, offset + 1)
   if c < 0x80 then
     return c, 1
   elseif c >= 0xe0 then
     return c - 0x100, 1
   elseif c < 0x90 then
-    return readmap(band(c, 0xf), data, 1)
+    return readmap(band(c, 0xf), data, offset, offset + 1)
   elseif c < 0xa0 then
-    return readarray(band(c, 0xf), data, 1)
+    return readarray(band(c, 0xf), data, offset, offset + 1)
   elseif c < 0xc0 then
     local len = 1 + band(c, 0x1f)
-    return sub(data, 2, len), len
+    return sub(data, offset + 2, offset + len), len
   elseif c == 0xc0 then
     return nil, 1
   elseif c == 0xc2 then
@@ -178,70 +178,70 @@ local function decode(data)
   elseif c == 0xc3 then
     return true, 1
   elseif c == 0xcc then
-    return byte(data, 2), 2
+    return byte(data, offset + 2), 2
   elseif c == 0xcd then
-    return read16(sub(data, 2)), 3
+    return read16(data, offset + 2), 3
   elseif c == 0xce then
-    return read32(sub(data, 2)) % 0x100000000, 5
+    return read32(data, offset + 2) % 0x100000000, 5
   elseif c == 0xcf then
-    return (read32(sub(data, 2)) % 0x100000000) * 0x100000000
-      + (read32(sub(data, 6)) % 0x100000000), 9
+    return (read32(data, offset + 2) % 0x100000000) * 0x100000000
+      + (read32(data, offset + 6) % 0x100000000), 9
   elseif c == 0xd0 then
-    local num = byte(data, 2)
+    local num = byte(data, offset + 2)
     return (num >= 0x80 and (num - 0x100) or num), 2
   elseif c == 0xd1 then
-    local num = read16(sub(data, 2))
+    local num = read16(data, offset + 2)
     return (num >= 0x8000 and (num - 0x10000) or num), 3
   elseif c == 0xd2 then
-    return read32(sub(data, 2)), 5
+    return read32(data, offset + 2), 5
   elseif c == 0xd3 then
-    local high = read32(sub(data, 2))
-    local low = read32(sub(data, 6))
+    local high = read32(data, offset + 2)
+    local low = read32(data, offset + 6)
     if low < 0 then
       high = high + 1
     end
     return high * 0x100000000 + low, 9
   elseif c == 0xd9 then
-    local len = 2 + byte(data, 2)
-    return sub(data, 3, len), len
+    local len = 2 + byte(data, offset + 2)
+    return sub(data, offset + 3, offset + len), len
   elseif c == 0xda then
-    local len = 3 + read16(sub(data, 2))
-    return sub(data, 4, len), len
+    local len = 3 + read16(data, offset + 2)
+    return sub(data, offset + 4, offset + len), len
   elseif c == 0xdb then
-    local len = 5 + read32(sub(data, 2)) % 0x100000000
-    return sub(data, 6, len), len
+    local len = 5 + read32(data, offset + 2) % 0x100000000
+    return sub(data, offset + 6, offset + len), len
   elseif c == 0xdc then
-    return readarray(read16(sub(data, 2)), data, 3)
+    return readarray(read16(data, offset + 2), data, offset, offset + 3)
   elseif c == 0xdd then
-    return readarray(read32(sub(data, 2)) % 0x100000000, data, 5)
+    return readarray(read32(data, offset + 2) % 0x100000000, data, offset, offset + 5)
   elseif c == 0xde then
-    return readmap(read16(sub(data, 2)), data, 3)
+    return readmap(read16(data, offset + 2), data, offset, offset + 3)
   elseif c == 0xdf then
-    return readmap(read32(sub(data, 2)) % 0x100000000, data, 5)
+    return readmap(read32(data, offset + 2) % 0x100000000, data, offset, offset + 5)
   else
     error("TODO: more types: " .. string.format("%02x", c))
   end
 end
 exports.decode = decode
 
-function readarray(count, data, offset)
+function readarray(count, data, offset, start)
   local items = {}
   for i = 1, count do
     local len
-    items[i], len = decode(sub(data, offset + 1))
-    offset = offset + len
+    items[i], len = decode(data, start)
+    start = start + len
   end
-  return items, offset
+  return items, start - offset
 end
 
-function readmap(count, data, offset)
+function readmap(count, data, offset, start)
   local map = {}
   for _ = 1, count do
     local len, key
-    key, len = decode(sub(data, offset + 1))
-    offset = offset + len
-    map[key], len = decode(sub(data, offset + 1))
-    offset = offset + len
+    key, len = decode(data, start)
+    start = start + len
+    map[key], len = decode(data, start)
+    start = start + len
   end
-  return map, offset
+  return map, start - offset
 end

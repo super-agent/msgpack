@@ -197,7 +197,7 @@ for i = 1, #tests, 2 do
   end
   input, output = output, input
   local len
-  actual, len = decode(input)
+  actual, len = decode(input, 0)
   if dump(actual) == dump(output) and len == #input then
     print("Decode Pass: " .. pretty(input) .. " -> " .. pretty(output))
   else
