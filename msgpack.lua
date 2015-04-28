@@ -159,52 +159,55 @@ exports.encode = encode
 local function decode(data)
   local c = byte(data, 1)
   if c < 0x80 then
-    return c
+    return c, 1
   elseif c >= 0xe0 then
-    return c - 0x100
+    return c - 0x100, 1
   elseif c < 0x90 then
     error("TODO: fixmap")
   elseif c < 0xa0 then
     error("TODO: fixarray")
   elseif c < 0xc0 then
-    local len = band(c, 0x1f)
-    return sub(data, 2, 1 + len)
+    local len = 1 + band(c, 0x1f)
+    return sub(data, 2, len), len
   elseif c == 0xc0 then
-    return nil
+    return nil, 1
   elseif c == 0xc2 then
-    return false
+    return false, 1
   elseif c == 0xc3 then
-    return true
+    return true, 1
   elseif c == 0xcc then
-    return byte(data, 2)
+    return byte(data, 2), 2
   elseif c == 0xcd then
-    return read16(sub(data, 2))
+    return read16(sub(data, 2)), 3
   elseif c == 0xce then
-    return read32(sub(data, 2)) % 0x100000000
+    return read32(sub(data, 2)) % 0x100000000, 5
   elseif c == 0xcf then
     return (read32(sub(data, 2)) % 0x100000000) * 0x100000000
-      + (read32(sub(data, 6)) % 0x100000000)
+      + (read32(sub(data, 6)) % 0x100000000), 9
   elseif c == 0xd0 then
     local num = byte(data, 2)
-    return num >= 0x80 and (num - 0x100) or num
+    return (num >= 0x80 and (num - 0x100) or num), 2
   elseif c == 0xd1 then
     local num = read16(sub(data, 2))
-    return num >= 0x8000 and (num - 0x10000) or num
+    return (num >= 0x8000 and (num - 0x10000) or num), 3
   elseif c == 0xd2 then
-    return read32(sub(data, 2))
+    return read32(sub(data, 2)), 5
   elseif c == 0xd3 then
     local high = read32(sub(data, 2))
     local low = read32(sub(data, 6))
     if low < 0 then
       high = high + 1
     end
-    return high * 0x100000000 + low
+    return high * 0x100000000 + low, 9
   elseif c == 0xd9 then
-    return sub(data, 3, 2 + byte(data, 2))
+    local len = 2 + byte(data, 2)
+    return sub(data, 3, len), len
   elseif c == 0xda then
-    return sub(data, 4, 3 + read16(sub(data, 2)))
+    local len = 3 + read16(sub(data, 2))
+    return sub(data, 4, len), len
   elseif c == 0xdb then
-    return sub(data, 6, 5 + read32(sub(data, 2)) % 0x100000000)
+    local len = 5 + read32(sub(data, 2)) % 0x100000000
+    return sub(data, 6, len), len
   elseif c == 0xdc then
     local len = read16(sub(data, 2))
     error("TODO: array 16")

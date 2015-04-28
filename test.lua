@@ -196,11 +196,12 @@ for i = 1, #tests, 2 do
     return -1
   end
   input, output = output, input
-  actual = decode(input)
-  if dump(actual) == dump(output) then
+  local len
+  actual, len = decode(input)
+  if dump(actual) == dump(output) and len == #input then
     print("Decode Pass: " .. pretty(input) .. " -> " .. pretty(output))
   else
-    print("Decode Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual))
+    print("Decode Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual) .. "\n  len:      " .. dump(len))
     return -1
   end
 end
