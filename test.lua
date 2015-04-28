@@ -180,7 +180,7 @@ local function pretty(value)
       return (colorize("nil", "[", "string") .. "@x" .. #m .. colorize("nil", "]", "string"))
     end)
   elseif t == "table" and #value > 100 then
-    return colorize("nil", "[", "table") .. "table:" .. #value .. colorize("nil", "]", "string")
+    return colorize("nil", "[", "table") .. "table:" .. #value .. colorize("nil", "]")
   end
   return dump(value)
 end

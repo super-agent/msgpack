@@ -1,8 +1,9 @@
 exports.name = "creationix/msgpack"
-exports.version = "1.0.0"
+exports.version = "1.0.1"
 exports.description = "A pure lua implementation of the msgpack format."
 exports.homepage = "https://github.com/creationix/msgpack-lua"
 exports.keywords = {"codec", "msgpack"}
+exports.license = "MIT"
 
 local floor = math.floor
 local ceil = math.ceil
