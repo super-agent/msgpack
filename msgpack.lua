@@ -202,23 +202,20 @@ local function decode(data)
       lshift(byte(data, 4), 8),
       byte(data, 5))
   elseif c == 0xd3 then
-    local high = 0x100000000 - (
-      byte(data, 2) * 0x1000000 +
-      byte(data, 3) * 0x10000 +
-      byte(data, 4) * 0x100 +
+    local high = bor(
+      lshift(byte(data, 2), 24),
+      lshift(byte(data, 3), 16),
+      lshift(byte(data, 4), 8),
       byte(data, 5))
-    local low = 0x100000000 - (
-      byte(data, 6) * 0x1000000 +
-      byte(data, 7) * 0x10000 +
-      byte(data, 8) * 0x100 +
+    local low = bor(
+      lshift(byte(data, 6), 24),
+      lshift(byte(data, 7), 16),
+      lshift(byte(data, 8), 8),
       byte(data, 9))
-    p(high, low)
-
-    -- if low == 0xffffffff then
-      return high * 0x100000000 + low
-    -- else
-      -- return (high - 1) * 0x100000000 + low
-    -- end
+    if low < 0 then
+      high = high + 1
+    end
+    return high * 0x100000000 + low
   else
     error("TODO: more types: " .. string.format("%02x", c))
   end
