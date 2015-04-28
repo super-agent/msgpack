@@ -130,7 +130,26 @@ local function encode(value)
       end
     end
     if isMap then
-      error("TODO: map")
+      local count = 0
+      local parts = {}
+      for key, value in pairs(value) do
+        parts[#parts + 1] = encode(key)
+        parts[#parts + 1] = encode(value)
+        count = count + 1
+      end
+      value = concat(parts)
+      if count < 16 then
+        return char(bor(0x80, count)) .. value
+      elseif count < 0x10000 then
+        return "\xde"
+          .. char(rshift(count, 8))
+          .. char(band(count, 0xff))
+          .. value
+      elseif count < 0x100000000 then
+        error("TODO: map32")
+      else
+        error("map too big: " .. count)
+      end
     else
       local parts = {}
       local l = #value

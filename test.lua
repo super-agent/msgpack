@@ -10,6 +10,14 @@ local function tabrep(num)
   return tab
 end
 
+local function maprep(num)
+  local map = {}
+  for i = 1, num do
+    map[i - 1] = 64
+  end
+  return map
+end
+
 local tests = {
     -- Nil format stores nil
     nil,                "\xc0",
@@ -150,10 +158,11 @@ local tests = {
     -- tabrep(0x100000),    "\xdd\x00\x10\x00\x00" .. string.rep("@", 0x100000),
     -- tabrep(0x1000000),    "\xdd\x01\x00\x00\x00" .. string.rep("@", 0x1000000),
 
-
-    -- { a=97 },           "{\"a\"=>97} FixMap",
-    -- { a=97},            "{\"a\"=>97} map 16",
-    -- { a=97 },           "{\"a\"=>97} map 32",
+    {name="Tim"},      "\x81\xa4name\xa3Tim",
+    {[{{}}]={{}}},     "\x81\x91\x90\x91\x90",
+    {[0]=0,[1]=1,[2]=2}, "\x83\x00\x00\x01\x01\x02\x02",
+    maprep(15),        "\x8f\x00@\x01@\x02@\x03@\x04@\x05@\x06@\x07@\x08@\x09@\x0a@\x0b@\x0c@\x0d@\x0e@",
+    maprep(16),        "\xde\x00\x10\x00@\x01@\x02@\x03@\x04@\x05@\x06@\x07@\x08@\x09@\x0a@\x0b@\x0c@\x0d@\x0e@\x0f@",
 }
 
 local patt = string.rep("@", 10) .. "*"
