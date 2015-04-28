@@ -189,20 +189,18 @@ print("Encoding tests...")
 for i = 1, #tests, 2 do
   local input, output = tests[i], tests[i + 1]
   local actual = encode(input)
-  if actual ~= output then
-    print("Test Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual))
-    return -1
+  if actual == output then
+    print("Encode Pass: " .. pretty(input) .. " -> " .. pretty(output))
   else
-    print("Test Pass: " .. pretty(input) .. " -> " .. pretty(output))
+    print("Encode Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual))
+    return -1
   end
-end
-
-print("Decoding tests...")
-for i = 1, #tests, 2 do
-  local input, output = tests[i + 1], tests[i]
-  local actual = decode(input)
-  print("input: " .. pretty(input))
-  print("expected: " .. pretty(output))
-  print("actual: " .. pretty(actual))
-  assert(dump(actual) == dump(output))
+  input, output = output, input
+  actual = decode(input)
+  if dump(actual) == dump(output) then
+    print("Decode Pass: " .. pretty(input) .. " -> " .. pretty(output))
+  else
+    print("Decode Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual))
+    return -1
+  end
 end

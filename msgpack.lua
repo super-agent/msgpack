@@ -10,6 +10,7 @@ local char = string.char
 local byte = string.byte
 local bit = require('bit')
 local rshift = bit.rshift
+local lshift = bit.lshift
 local band = bit.band
 local bor = bit.bor
 local concat = table.concat
@@ -94,7 +95,7 @@ local function encode(value)
   elseif t == "table" then
     local isMap = false
     local index = 1
-    for key, value in pairs(value) do
+    for key in pairs(value) do
       if type(key) ~= "number" or key ~= index then
         isMap = true
         break
@@ -105,9 +106,9 @@ local function encode(value)
     if isMap then
       local count = 0
       local parts = {}
-      for key, value in pairs(value) do
+      for key, part in pairs(value) do
         parts[#parts + 1] = encode(key)
-        parts[#parts + 1] = encode(value)
+        parts[#parts + 1] = encode(part)
         count = count + 1
       end
       value = concat(parts)
@@ -144,53 +145,82 @@ end
 exports.encode = encode
 
 local function decode(data)
-  local i, l = 1, #data
-  local value
-  while i <= l do
-    local c = byte(data, i)
-    if c < 0x80 then
-      value = c
-      i = i + 1
-      break
-    elseif c > 0xe0 then
-      error("TODO: negative fixint")
-    elseif c < 0x90 then
-      error("TODO: fixmap")
-    elseif c < 0xa0 then
-      error("TODO: fixarray")
-    elseif c < 0xc0 then
-      error("TODO: fixstring")
-    elseif c == 0xc0 then
-      value = nil
-      break
-    elseif c == 0xc1 then
-      error("Invalid type byte 0xc1")
-    elseif c == 0xc2 then
-      value = false
-      break
-    elseif c == 0xc3 then
-      value = true
-      break
-    elseif c == 0xcc then
-      error("TODO: uint 8")
-    elseif c == 0xcd then
-      error("TODO: uint 16")
-    elseif c == 0xce then
-      error("TODO: uint 32")
-    elseif c == 0xcf then
-      error("TODO: uint 64")
-    elseif c == 0xd0 then
-      error("TODO: int 8")
-    elseif c == 0xd1 then
-      error("TODO: int 16")
-    elseif c == 0xd2 then
-      error("TODO: int 32")
-    elseif c == 0xd3 then
-      error("TODO: int 64")
-    else 
-      error("TODO: more types")
-    end
+  local c = byte(data, 1)
+  if c < 0x80 then
+    return c
+  elseif c >= 0xe0 then
+    return c - 0x100
+  elseif c < 0x90 then
+    error("TODO: fixmap")
+  elseif c < 0xa0 then
+    error("TODO: fixarray")
+  elseif c < 0xc0 then
+    error("TODO: fixstring")
+  elseif c == 0xc0 then
+    return nil
+  elseif c == 0xc1 then
+    return nil, "Invalid type 0xc1"
+  elseif c == 0xc2 then
+    return false
+  elseif c == 0xc3 then
+    return true
+  elseif c == 0xcc then
+    return byte(data, 2)
+  elseif c == 0xcd then
+    return bor(
+      lshift(byte(data, 2), 8),
+      byte(data, 3))
+  elseif c == 0xce then
+    return bor(
+      lshift(byte(data, 2), 24),
+      lshift(byte(data, 3), 16),
+      lshift(byte(data, 4), 8),
+      byte(data, 5)) % 0x100000000
+  elseif c == 0xcf then
+    return (bor(
+      lshift(byte(data, 2), 24),
+      lshift(byte(data, 3), 16),
+      lshift(byte(data, 4), 8),
+      byte(data, 5)) % 0x100000000) * 0x100000000
+      + (bor(
+      lshift(byte(data, 6), 24),
+      lshift(byte(data, 7), 16),
+      lshift(byte(data, 8), 8),
+      byte(data, 9)) % 0x100000000)
+  elseif c == 0xd0 then
+    local num = byte(data, 2)
+    return num >= 0x80 and (num - 0x100) or num
+  elseif c == 0xd1 then
+    local num = bor(
+      lshift(byte(data, 2), 8),
+      byte(data, 3))
+    return num >= 0x8000 and (num - 0x10000) or num
+  elseif c == 0xd2 then
+    return bor(
+      lshift(byte(data, 2), 24),
+      lshift(byte(data, 3), 16),
+      lshift(byte(data, 4), 8),
+      byte(data, 5))
+  elseif c == 0xd3 then
+    local high = 0x100000000 - (
+      byte(data, 2) * 0x1000000 +
+      byte(data, 3) * 0x10000 +
+      byte(data, 4) * 0x100 +
+      byte(data, 5))
+    local low = 0x100000000 - (
+      byte(data, 6) * 0x1000000 +
+      byte(data, 7) * 0x10000 +
+      byte(data, 8) * 0x100 +
+      byte(data, 9))
+    p(high, low)
+
+    -- if low == 0xffffffff then
+      return high * 0x100000000 + low
+    -- else
+      -- return (high - 1) * 0x100000000 + low
+    -- end
+  else
+    error("TODO: more types: " .. string.format("%02x", c))
   end
-  return value, i
 end
 exports.decode = decode
