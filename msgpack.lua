@@ -16,21 +16,30 @@ local band = bit.band
 local bor = bit.bor
 local concat = table.concat
 
-local function uint16(num)
+local function write16(num)
   return char(rshift(num, 8))
     .. char(band(num, 0xff))
 end
 
-local function uint32(num)
+local function write32(num)
   return char(rshift(num, 24))
     .. char(band(rshift(num, 16), 0xff))
     .. char(band(rshift(num, 8), 0xff))
     .. char(band(num, 0xff))
 end
 
-local function uint64(num)
-  return uint32(floor(num / 0x100000000))
-    .. uint32(num % 0x100000000)
+local function read16(data)
+  return bor(
+    lshift(byte(data, 1), 8),
+    byte(data, 2))
+end
+
+local function read32(data)
+  return bor(
+    lshift(byte(data, 1), 24),
+    lshift(byte(data, 2), 16),
+    lshift(byte(data, 3), 8),
+    byte(data, 4))
 end
 
 local function encode(value)
@@ -47,11 +56,13 @@ local function encode(value)
         elseif value < 0x100 then
           return "\xcc" .. char(value)
         elseif value < 0x10000 then
-          return "\xcd" .. uint16(value)
+          return "\xcd" .. write16(value)
         elseif value < 0x100000000 then
-          return "\xce" .. uint32(value)
+          return "\xce" .. write32(value)
         else
-          return "\xcf" .. uint64(value)
+          return "\xcf"
+            .. write32(floor(value / 0x100000000))
+            .. write32(value % 0x100000000)
         end
       else
         if value >= -0x20 then
@@ -59,12 +70,12 @@ local function encode(value)
         elseif value >= -0x80 then
           return "\xd0" .. char(0x100 + value)
         elseif value >= -0x8000 then
-          return "\xd1" .. uint16(0x10000 + value)
+          return "\xd1" .. write16(0x10000 + value)
         elseif value >= -0x80000000 then
-          return "\xd2" .. uint32(0x100000000 + value)
+          return "\xd2" .. write32(0x100000000 + value)
         elseif value >= -0x100000000 then
           return "\xd3\xff\xff\xff\xff"
-            .. uint32(0x100000000 + value)
+            .. write32(0x100000000 + value)
         else
           local high = ceil(value / 0x100000000)
           local low = value - high * 0x100000000
@@ -74,7 +85,7 @@ local function encode(value)
             high = 0xffffffff + high
             low = 0x100000000 + low
           end
-          return "\xd3" .. uint32(high) .. uint32(low)
+          return "\xd3" .. write32(high) .. write32(low)
         end
       end
     else
@@ -87,9 +98,9 @@ local function encode(value)
     elseif l < 0x100 then
       return "\xd9" .. char(l) .. value
     elseif l < 0x10000 then
-      return "\xda" .. uint16(l) .. value
+      return "\xda" .. write16(l) .. value
     elseif l < 0x100000000 then
-      return "\xdb" .. uint32(l) .. value
+      return "\xdb" .. write32(l) .. value
     else
       error("String too long: " .. l .. " bytes")
     end
@@ -116,9 +127,9 @@ local function encode(value)
       if count < 16 then
         return char(bor(0x80, count)) .. value
       elseif count < 0x10000 then
-        return "\xde" .. uint16(count) .. value
+        return "\xde" .. write16(count) .. value
       elseif count < 0x100000000 then
-        return "\xdf" .. uint32(count) .. value
+        return "\xdf" .. write32(count) .. value
       else
         error("map too big: " .. count)
       end
@@ -132,9 +143,9 @@ local function encode(value)
       if l < 0x10 then
         return char(bor(0x90, l)) .. value
       elseif l < 0x10000 then
-        return "\xdc" .. uint16(l) .. value
+        return "\xdc" .. write16(l) .. value
       elseif l < 0x100000000 then
-        return "\xdd" .. uint32(l) .. value
+        return "\xdd" .. write32(l) .. value
       else
         error("Array too long: " .. l .. "items")
       end
@@ -167,93 +178,44 @@ local function decode(data)
   elseif c == 0xcc then
     return byte(data, 2)
   elseif c == 0xcd then
-    return bor(
-      lshift(byte(data, 2), 8),
-      byte(data, 3))
+    return read16(sub(data, 2))
   elseif c == 0xce then
-    return bor(
-      lshift(byte(data, 2), 24),
-      lshift(byte(data, 3), 16),
-      lshift(byte(data, 4), 8),
-      byte(data, 5)) % 0x100000000
+    return read32(sub(data, 2)) % 0x100000000
   elseif c == 0xcf then
-    return (bor(
-      lshift(byte(data, 2), 24),
-      lshift(byte(data, 3), 16),
-      lshift(byte(data, 4), 8),
-      byte(data, 5)) % 0x100000000) * 0x100000000
-      + (bor(
-      lshift(byte(data, 6), 24),
-      lshift(byte(data, 7), 16),
-      lshift(byte(data, 8), 8),
-      byte(data, 9)) % 0x100000000)
+    return (read32(sub(data, 2)) % 0x100000000) * 0x100000000
+      + (read32(sub(data, 6)) % 0x100000000)
   elseif c == 0xd0 then
     local num = byte(data, 2)
     return num >= 0x80 and (num - 0x100) or num
   elseif c == 0xd1 then
-    local num = bor(
-      lshift(byte(data, 2), 8),
-      byte(data, 3))
+    local num = read16(sub(data, 2))
     return num >= 0x8000 and (num - 0x10000) or num
   elseif c == 0xd2 then
-    return bor(
-      lshift(byte(data, 2), 24),
-      lshift(byte(data, 3), 16),
-      lshift(byte(data, 4), 8),
-      byte(data, 5))
+    return read32(sub(data, 2))
   elseif c == 0xd3 then
-    local high = bor(
-      lshift(byte(data, 2), 24),
-      lshift(byte(data, 3), 16),
-      lshift(byte(data, 4), 8),
-      byte(data, 5))
-    local low = bor(
-      lshift(byte(data, 6), 24),
-      lshift(byte(data, 7), 16),
-      lshift(byte(data, 8), 8),
-      byte(data, 9))
+    local high = read32(sub(data, 2))
+    local low = read32(sub(data, 6))
     if low < 0 then
       high = high + 1
     end
     return high * 0x100000000 + low
   elseif c == 0xd9 then
-    local len = byte(data, 2)
-    return sub(data, 3, 2 + len)
+    return sub(data, 3, 2 + byte(data, 2))
   elseif c == 0xda then
-    local len = bor(
-      lshift(byte(data, 2), 8),
-      byte(data, 3))
-    return sub(data, 4, 3 + len)
+    return sub(data, 4, 3 + read16(sub(data, 2)))
   elseif c == 0xdb then
-    local len = bor(
-      lshift(byte(data, 2), 24),
-      lshift(byte(data, 3), 16),
-      lshift(byte(data, 4), 8),
-      byte(data, 5)) % 0x100000000
-    return sub(data, 6, 5 + len)
+    return sub(data, 6, 5 + read32(sub(data, 2)) % 0x100000000)
   elseif c == 0xdc then
-    local len = bor(
-      lshift(byte(data, 2), 8),
-      byte(data, 3))
+    local len = read16(sub(data, 2))
     error("TODO: array 16")
   elseif c == 0xdd then
-    local len = bor(
-      lshift(byte(data, 2), 24),
-      lshift(byte(data, 3), 16),
-      lshift(byte(data, 4), 8),
-      byte(data, 5)) % 0x100000000
+    local len = read32(sub(data, 2)) % 0x100000000
     error("TODO: array 32")
   elseif c == 0xde then
-    local len = bor(
-      lshift(byte(data, 2), 8),
-      byte(data, 3))
+    local len = read16(sub(data, 2))
     error("TODO: map 16")
   elseif c == 0xdf then
-    local len = bor(
-      lshift(byte(data, 2), 24),
-      lshift(byte(data, 3), 16),
-      lshift(byte(data, 4), 8),
-      byte(data, 5)) % 0x100000000
+    local len = read32(sub(data, 2)) % 0x100000000
     error("TODO: map 32")
   else
     error("TODO: more types: " .. string.format("%02x", c))
