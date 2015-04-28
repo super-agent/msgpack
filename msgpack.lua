@@ -7,6 +7,7 @@ exports.keywords = {"codec", "msgpack"}
 local floor = math.floor
 local ceil = math.ceil
 local char = string.char
+local byte = string.byte
 local bit = require('bit')
 local rshift = bit.rshift
 local band = bit.band
@@ -142,5 +143,54 @@ local function encode(value)
 end
 exports.encode = encode
 
-function exports.decode(data)
+local function decode(data)
+  local i, l = 1, #data
+  local value
+  while i <= l do
+    local c = byte(data, i)
+    if c < 0x80 then
+      value = c
+      i = i + 1
+      break
+    elseif c > 0xe0 then
+      error("TODO: negative fixint")
+    elseif c < 0x90 then
+      error("TODO: fixmap")
+    elseif c < 0xa0 then
+      error("TODO: fixarray")
+    elseif c < 0xc0 then
+      error("TODO: fixstring")
+    elseif c == 0xc0 then
+      value = nil
+      break
+    elseif c == 0xc1 then
+      error("Invalid type byte 0xc1")
+    elseif c == 0xc2 then
+      value = false
+      break
+    elseif c == 0xc3 then
+      value = true
+      break
+    elseif c == 0xcc then
+      error("TODO: uint 8")
+    elseif c == 0xcd then
+      error("TODO: uint 16")
+    elseif c == 0xce then
+      error("TODO: uint 32")
+    elseif c == 0xcf then
+      error("TODO: uint 64")
+    elseif c == 0xd0 then
+      error("TODO: int 8")
+    elseif c == 0xd1 then
+      error("TODO: int 16")
+    elseif c == 0xd2 then
+      error("TODO: int 32")
+    elseif c == 0xd3 then
+      error("TODO: int 64")
+    else 
+      error("TODO: more types")
+    end
+  end
+  return value, i
 end
+exports.decode = decode

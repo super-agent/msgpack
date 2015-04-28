@@ -1,4 +1,5 @@
 local encode = require('./msgpack').encode
+local decode = require('./msgpack').decode
 local colorize = require('pretty-print').colorize
 local dump = require('pretty-print').dump
 
@@ -184,6 +185,7 @@ local function pretty(value)
   return dump(value)
 end
 
+print("Encoding tests...")
 for i = 1, #tests, 2 do
   local input, output = tests[i], tests[i + 1]
   local actual = encode(input)
@@ -193,5 +195,14 @@ for i = 1, #tests, 2 do
   else
     print("Test Pass: " .. pretty(input) .. " -> " .. pretty(output))
   end
+end
 
+print("Decoding tests...")
+for i = 1, #tests, 2 do
+  local input, output = tests[i + 1], tests[i]
+  local actual = decode(input)
+  print("input: " .. pretty(input))
+  print("expected: " .. pretty(output))
+  print("actual: " .. pretty(actual))
+  assert(dump(actual) == dump(output))
 end
