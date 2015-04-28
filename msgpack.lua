@@ -8,6 +8,7 @@ local floor = math.floor
 local ceil = math.ceil
 local char = string.char
 local byte = string.byte
+local sub = string.sub
 local bit = require('bit')
 local rshift = bit.rshift
 local lshift = bit.lshift
@@ -155,11 +156,10 @@ local function decode(data)
   elseif c < 0xa0 then
     error("TODO: fixarray")
   elseif c < 0xc0 then
-    error("TODO: fixstring")
+    local len = band(c, 0x1f)
+    return sub(data, 2, 1 + len)
   elseif c == 0xc0 then
     return nil
-  elseif c == 0xc1 then
-    return nil, "Invalid type 0xc1"
   elseif c == 0xc2 then
     return false
   elseif c == 0xc3 then
@@ -216,6 +216,45 @@ local function decode(data)
       high = high + 1
     end
     return high * 0x100000000 + low
+  elseif c == 0xd9 then
+    local len = byte(data, 2)
+    return sub(data, 3, 2 + len)
+  elseif c == 0xda then
+    local len = bor(
+      lshift(byte(data, 2), 8),
+      byte(data, 3))
+    return sub(data, 4, 3 + len)
+  elseif c == 0xdb then
+    local len = bor(
+      lshift(byte(data, 2), 24),
+      lshift(byte(data, 3), 16),
+      lshift(byte(data, 4), 8),
+      byte(data, 5)) % 0x100000000
+    return sub(data, 6, 5 + len)
+  elseif c == 0xdc then
+    local len = bor(
+      lshift(byte(data, 2), 8),
+      byte(data, 3))
+    error("TODO: array 16")
+  elseif c == 0xdd then
+    local len = bor(
+      lshift(byte(data, 2), 24),
+      lshift(byte(data, 3), 16),
+      lshift(byte(data, 4), 8),
+      byte(data, 5)) % 0x100000000
+    error("TODO: array 32")
+  elseif c == 0xde then
+    local len = bor(
+      lshift(byte(data, 2), 8),
+      byte(data, 3))
+    error("TODO: map 16")
+  elseif c == 0xdf then
+    local len = bor(
+      lshift(byte(data, 2), 24),
+      lshift(byte(data, 3), 16),
+      lshift(byte(data, 4), 8),
+      byte(data, 5)) % 0x100000000
+    error("TODO: map 32")
   else
     error("TODO: more types: " .. string.format("%02x", c))
   end
