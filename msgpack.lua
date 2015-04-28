@@ -156,6 +156,8 @@ local function encode(value)
 end
 exports.encode = encode
 
+local readmap, readarray
+
 local function decode(data)
   local c = byte(data, 1)
   if c < 0x80 then
@@ -163,9 +165,9 @@ local function decode(data)
   elseif c >= 0xe0 then
     return c - 0x100, 1
   elseif c < 0x90 then
-    error("TODO: fixmap")
+    return readmap(band(c, 0xf), data, 1)
   elseif c < 0xa0 then
-    error("TODO: fixarray")
+    return readarray(band(c, 0xf), data, 1)
   elseif c < 0xc0 then
     local len = 1 + band(c, 0x1f)
     return sub(data, 2, len), len
@@ -209,19 +211,37 @@ local function decode(data)
     local len = 5 + read32(sub(data, 2)) % 0x100000000
     return sub(data, 6, len), len
   elseif c == 0xdc then
-    local len = read16(sub(data, 2))
-    error("TODO: array 16")
+    return readarray(read16(sub(data, 2)), data, 3)
   elseif c == 0xdd then
-    local len = read32(sub(data, 2)) % 0x100000000
-    error("TODO: array 32")
+    return readarray(read32(sub(data, 2)) % 0x100000000, data, 5)
   elseif c == 0xde then
-    local len = read16(sub(data, 2))
-    error("TODO: map 16")
+    return readmap(read16(sub(data, 2)), data, 3)
   elseif c == 0xdf then
-    local len = read32(sub(data, 2)) % 0x100000000
-    error("TODO: map 32")
+    return readmap(read32(sub(data, 2)) % 0x100000000, data, 5)
   else
     error("TODO: more types: " .. string.format("%02x", c))
   end
 end
 exports.decode = decode
+
+function readarray(count, data, offset)
+  local items = {}
+  for i = 1, count do
+    local len
+    items[i], len = decode(sub(data, offset + 1))
+    offset = offset + len
+  end
+  return items, offset
+end
+
+function readmap(count, data, offset)
+  local map = {}
+  for _ = 1, count do
+    local len, key
+    key, len = decode(sub(data, offset + 1))
+    offset = offset + len
+    map[key], len = decode(sub(data, offset + 1))
+    offset = offset + len
+  end
+  return map, offset
+end
