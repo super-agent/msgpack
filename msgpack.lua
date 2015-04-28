@@ -13,6 +13,23 @@ local band = bit.band
 local bor = bit.bor
 local concat = table.concat
 
+local function uint16(num)
+  return char(rshift(num, 8))
+    .. char(band(num, 0xff))
+end
+
+local function uint32(num)
+  return char(rshift(num, 24))
+    .. char(band(rshift(num, 16), 0xff))
+    .. char(band(rshift(num, 8), 0xff))
+    .. char(band(num, 0xff))
+end
+
+local function uint64(num)
+  return uint32(floor(num / 0x100000000))
+    .. uint32(num % 0x100000000)
+end
+
 local function encode(value)
   local t = type(value)
   if t == "nil" then
@@ -25,30 +42,13 @@ local function encode(value)
         if value < 0x80 then
           return char(value)
         elseif value < 0x100 then
-          return "\xcc"
-            .. char(value)
+          return "\xcc" .. char(value)
         elseif value < 0x10000 then
-          return "\xcd"
-            .. char(rshift(value, 8))
-            .. char(band(value, 0xff))
+          return "\xcd" .. uint16(value)
         elseif value < 0x100000000 then
-          return "\xce"
-            .. char(rshift(value, 24))
-            .. char(band(rshift(value, 16), 0xff))
-            .. char(band(rshift(value, 8), 0xff))
-            .. char(band(value, 0xff))
+          return "\xce" .. uint32(value)
         else
-          local high = floor(value / 0x100000000)
-          local low = value % 0x100000000
-          return "\xcf"
-            .. char(rshift(high, 24))
-            .. char(band(rshift(high, 16), 0xff))
-            .. char(band(rshift(high, 8), 0xff))
-            .. char(band(high, 0xff))
-            .. char(rshift(low, 24))
-            .. char(band(rshift(low, 16), 0xff))
-            .. char(band(rshift(low, 8), 0xff))
-            .. char(band(low, 0xff))
+          return "\xcf" .. uint64(value)
         end
       else
         if value >= -0x20 then
@@ -56,24 +56,12 @@ local function encode(value)
         elseif value >= -0x80 then
           return "\xd0" .. char(0x100 + value)
         elseif value >= -0x8000 then
-          local num = 0x10000 + value
-          return "\xd1"
-            .. char(rshift(num, 8))
-            .. char(band(num, 0xff))
+          return "\xd1" .. uint16(0x10000 + value)
         elseif value >= -0x80000000 then
-          local num = 0x100000000 + value
-          return "\xd2"
-            .. char(rshift(num, 24))
-            .. char(band(rshift(num, 16), 0xff))
-            .. char(band(rshift(num, 8), 0xff))
-            .. char(band(num, 0xff))
+          return "\xd2" .. uint32(0x100000000 + value)
         elseif value >= -0x100000000 then
-          local num = 0x100000000 + value
           return "\xd3\xff\xff\xff\xff"
-            .. char(rshift(num, 24))
-            .. char(band(rshift(num, 16), 0xff))
-            .. char(band(rshift(num, 8), 0xff))
-            .. char(band(num, 0xff))
+            .. uint32(0x100000000 + value)
         else
           local high = ceil(value / 0x100000000)
           local low = value - high * 0x100000000
@@ -83,15 +71,7 @@ local function encode(value)
             high = 0xffffffff + high
             low = 0x100000000 + low
           end
-          return "\xd3"
-            .. char(rshift(high, 24))
-            .. char(band(rshift(high, 16), 0xff))
-            .. char(band(rshift(high, 8), 0xff))
-            .. char(band(high, 0xff))
-            .. char(rshift(low, 24))
-            .. char(band(rshift(low, 16), 0xff))
-            .. char(band(rshift(low, 8), 0xff))
-            .. char(band(low, 0xff))
+          return "\xd3" .. uint32(high) .. uint32(low)
         end
       end
     else
@@ -104,17 +84,9 @@ local function encode(value)
     elseif l < 0x100 then
       return "\xd9" .. char(l) .. value
     elseif l < 0x10000 then
-      return "\xda"
-        .. char(rshift(l, 8))
-        .. char(band(l, 0xff))
-        .. value
+      return "\xda" .. uint16(l) .. value
     elseif l < 0x100000000 then
-      return "\xdb"
-        .. char(rshift(l, 24))
-        .. char(band(rshift(l, 16), 0xff))
-        .. char(band(rshift(l, 8), 0xff))
-        .. char(band(l, 0xff))
-        .. value
+      return "\xdb" .. uint32(l) .. value
     else
       error("String too long: " .. l .. " bytes")
     end
@@ -141,12 +113,9 @@ local function encode(value)
       if count < 16 then
         return char(bor(0x80, count)) .. value
       elseif count < 0x10000 then
-        return "\xde"
-          .. char(rshift(count, 8))
-          .. char(band(count, 0xff))
-          .. value
+        return "\xde" .. uint16(count) .. value
       elseif count < 0x100000000 then
-        error("TODO: map32")
+        return "\xdf" .. uint32(count) .. value
       else
         error("map too big: " .. count)
       end
@@ -160,17 +129,9 @@ local function encode(value)
       if l < 0x10 then
         return char(bor(0x90, l)) .. value
       elseif l < 0x10000 then
-        return "\xdc"
-          .. char(rshift(l, 8))
-          .. char(band(l, 0xff))
-          .. value
+        return "\xdc" .. uint16(l) .. value
       elseif l < 0x100000000 then
-        return "\xdd"
-          .. char(rshift(l, 24))
-          .. char(band(rshift(l, 16), 0xff))
-          .. char(band(rshift(l, 8), 0xff))
-          .. char(band(l, 0xff))
-          .. value
+        return "\xdd" .. uint32(l) .. value
       else
         error("Array too long: " .. l .. "items")
       end
