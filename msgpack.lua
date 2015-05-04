@@ -1,5 +1,5 @@
 exports.name = "creationix/msgpack"
-exports.version = "1.0.1"
+exports.version = "1.0.2"
 exports.description = "A pure lua implementation of the msgpack format."
 exports.homepage = "https://github.com/creationix/msgpack-lua"
 exports.keywords = {"codec", "msgpack"}
@@ -223,7 +223,10 @@ local function decode(data, offset)
     error("TODO: more types: " .. string.format("%02x", c))
   end
 end
-exports.decode = decode
+
+exports.decode = function (data, offset)
+  return decode(data, offset or 0)
+end
 
 function readarray(count, data, offset, start)
   local items = {}
