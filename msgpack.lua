@@ -7,6 +7,9 @@ exports.license = "MIT"
 
 local floor = math.floor
 local ceil = math.ceil
+local frexp = math.frexp
+local ldexp = math.ldexp
+local huge = math.huge
 local char = string.char
 local byte = string.byte
 local sub = string.sub
@@ -18,15 +21,15 @@ local bor = bit.bor
 local concat = table.concat
 
 local function write16(num)
-  return char(rshift(num, 8))
-    .. char(band(num, 0xff))
+  return char(rshift(num, 8), band(num, 0xff))
 end
 
 local function write32(num)
-  return char(rshift(num, 24))
-    .. char(band(rshift(num, 16), 0xff))
-    .. char(band(rshift(num, 8), 0xff))
-    .. char(band(num, 0xff))
+  return char(
+    rshift(num, 24),
+    band(rshift(num, 16), 0xff),
+    band(rshift(num, 8), 0xff),
+    band(num, 0xff))
 end
 
 local function read16(data, offset)
@@ -50,7 +53,14 @@ local function encode(value)
   elseif t == "boolean" then
     return value and "\xc3" or "\xc2"
   elseif t == "number" then
-    if floor(value) == value then
+    if value == huge then
+      -- Encode as Infinity
+      return "\xCB\x7F\xF0\x00\x00\x00\x00\x00\x00"
+    elseif value == -huge then
+      -- Encode as -Infinity
+      return "\xCB\xFF\xF0\x00\x00\x00\x00\x00\x00"
+    elseif floor(value) == value then
+      -- Encode as smallest integer type that fits
       if value >= 0 then
         if value < 0x80 then
           return char(value)
@@ -90,7 +100,27 @@ local function encode(value)
         end
       end
     else
-      error("TODO: floating point numbers")
+      local mantissa, exponent = frexp(value)
+      if mantissa ~= mantissa then
+        -- Encode as NaN
+        return "\xCB\xFF\xF8\x00\x00\x00\x00\x00\x00"
+      end
+      local sign = 0
+      if mantissa < 0 then
+        sign = 0x80
+        mantissa = -mantissa
+      end
+      exponent = exponent + 0x3FE
+      mantissa = (mantissa * 2.0 - 1.0) * ldexp(0.5, 53)
+      return char(0xCB,
+        sign + floor(exponent / 0x10),
+        (exponent % 0x10) * 0x10 + floor(mantissa / 0x1000000000000),
+        floor(mantissa / 0x10000000000) % 0x100,
+        floor(mantissa / 0x100000000) % 0x100,
+        floor(mantissa / 0x1000000) % 0x100,
+        floor(mantissa / 0x10000) % 0x100,
+        floor(mantissa / 0x100) % 0x100,
+        mantissa % 0x100)
     end
   elseif t == "string" then
     local l = #value
