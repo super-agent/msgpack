@@ -1,9 +1,11 @@
-exports.name = "creationix/msgpack"
-exports.version = "1.0.2"
-exports.description = "A pure lua implementation of the msgpack format."
-exports.homepage = "https://github.com/creationix/msgpack-lua"
-exports.keywords = {"codec", "msgpack"}
-exports.license = "MIT"
+--[[lit-meta
+  name = "creationix/msgpack"
+  version = "2.0.0"
+  description = "A pure lua implementation of the msgpack format."
+  homepage = "https://github.com/creationix/msgpack-lua"
+  keywords = {"codec", "msgpack"}
+  license = "MIT"
+]]
 
 local floor = math.floor
 local ceil = math.ceil
@@ -185,7 +187,6 @@ local function encode(value)
     error("Unknown type: " .. t)
   end
 end
-exports.encode = encode
 
 local readmap, readarray
 
@@ -254,9 +255,6 @@ local function decode(data, offset)
   end
 end
 
-exports.decode = function (data, offset)
-  return decode(data, offset or 0)
-end
 
 function readarray(count, data, offset, start)
   local items = {}
@@ -279,3 +277,10 @@ function readmap(count, data, offset, start)
   end
   return map, start - offset
 end
+
+return {
+  encode = encode,
+  decode = function (data, offset)
+    return decode(data, offset or 0)
+  end
+}
