@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/msgpack"
-  version = "2.0.0"
+  version = "2.1.0"
   description = "A pure lua implementation of the msgpack format."
   homepage = "https://github.com/creationix/msgpack-lua"
   keywords = {"codec", "msgpack"}
@@ -21,7 +21,9 @@ local lshift = bit.lshift
 local band = bit.band
 local bor = bit.bor
 local concat = table.concat
+local ffi = require('ffi')
 
+local buffer = ffi.typeof('uint8_t[?]')
 local function write16(num)
   return char(rshift(num, 8), band(num, 0xff))
 end
@@ -137,6 +139,18 @@ local function encode(value)
     else
       error("String too long: " .. l .. " bytes")
     end
+  elseif t == "cdata" then
+    local l = ffi.sizeof(value)
+    value = ffi.string(value, l)
+    if l < 0x100 then
+      return "\xc4" .. char(l) .. value
+    elseif l < 0x10000 then
+      return "\xc5" .. write16(l) .. value
+    elseif l < 0x100000000 then
+      return "\xc6" .. write32(l) .. value
+    else
+      error("Buffer too long: " .. l .. " bytes")
+    end
   elseif t == "table" then
     local isMap = false
     local index = 1
@@ -242,6 +256,15 @@ local function decode(data, offset)
   elseif c == 0xdb then
     local len = 5 + read32(data, offset + 2) % 0x100000000
     return sub(data, offset + 6, offset + len), len
+  elseif c == 0xc4 then
+    local len = 2 + byte(data, offset + 2)
+    return buffer(len, sub(data, offset + 3, offset + len)), len
+  elseif c == 0xc5 then
+    local len = 3 + read16(data, offset + 2)
+    return buffer(len, sub(data, offset + 4, offset + len)), len
+  elseif c == 0xc6 then
+    local len = 5 + read32(data, offset + 2) % 0x100000000
+    return buffer(len, sub(data, offset + 6, offset + len)), len
   elseif c == 0xdc then
     return readarray(read16(data, offset + 2), data, offset, offset + 3)
   elseif c == 0xdd then
