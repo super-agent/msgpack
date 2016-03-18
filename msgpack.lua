@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/msgpack"
-  version = "2.2.0"
+  version = "2.2.1"
   description = "A pure lua implementation of the msgpack format."
   homepage = "https://github.com/creationix/msgpack-lua"
   keywords = {"codec", "msgpack"}
@@ -280,14 +280,17 @@ local function decode(data, offset)
     local len = 5 + read32(data, offset + 2) % 0x100000000
     return sub(data, offset + 6, offset + len), len
   elseif c == 0xc4 then
-    local len = 2 + byte(data, offset + 2)
-    return buffer(len, sub(data, offset + 3, offset + len)), len
+    local bytes = byte(data, offset + 2)
+    local len = 2 + bytes
+    return buffer(bytes, sub(data, offset + 3, offset + len)), len
   elseif c == 0xc5 then
-    local len = 3 + read16(data, offset + 2)
-    return buffer(len, sub(data, offset + 4, offset + len)), len
+    local bytes = read16(data, offset + 2)
+    local len = 3 + bytes
+    return buffer(bytes, sub(data, offset + 4, offset + len)), len
   elseif c == 0xc6 then
-    local len = 5 + read32(data, offset + 2) % 0x100000000
-    return buffer(len, sub(data, offset + 6, offset + len)), len
+    local bytes = read32(data, offset + 2) % 0x100000000
+    local len = 5 + bytes
+    return buffer(bytes, sub(data, offset + 6, offset + len)), len
   elseif c == 0xca then
     if bigEndian then
       copy(fbox, char(
