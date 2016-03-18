@@ -164,6 +164,7 @@ local tests = {
     {[0]=0,[1]=1,[2]=2}, "\x83\x00\x00\x01\x01\x02\x02",
     maprep(15),        "\x8f\x00@\x01@\x02@\x03@\x04@\x05@\x06@\x07@\x08@\x09@\x0a@\x0b@\x0c@\x0d@\x0e@",
     maprep(16),        "\xde\x00\x10\x00@\x01@\x02@\x03@\x04@\x05@\x06@\x07@\x08@\x09@\x0a@\x0b@\x0c@\x0d@\x0e@\x0f@",
+    3.1415926535898,   "\xcb@\t!\xfbTD-(",
 }
 
 local patt = string.rep("@", 10) .. "*"
@@ -171,6 +172,9 @@ local patt = string.rep("@", 10) .. "*"
 local function pretty(value)
   local t = type(value)
   if t == "number" then
+    if value ~= math.floor(value) then
+      return colorize("number", tostring(value))
+    end
     if value < 0 then
       return colorize("number", string.format("-0x%x", -value))
     end

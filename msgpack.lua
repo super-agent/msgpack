@@ -9,8 +9,6 @@
 
 local floor = math.floor
 local ceil = math.ceil
-local frexp = math.frexp
-local ldexp = math.ldexp
 local huge = math.huge
 local char = string.char
 local byte = string.byte
@@ -22,6 +20,17 @@ local band = bit.band
 local bor = bit.bor
 local concat = table.concat
 local ffi = require('ffi')
+local dbox = ffi.new("double[1]")
+local fbox = ffi.new("float[1]")
+local cast = ffi.cast
+local copy = ffi.copy
+local bigEndian
+do
+  local a= ffi.new("int16_t[1]")
+  a[0] = 1
+  local b = ffi.cast("uint8_t*", a)
+  bigEndian = b[0] == 0
+end
 
 local buffer = ffi.typeof('uint8_t[?]')
 local function write16(num)
@@ -104,27 +113,29 @@ local function encode(value)
         end
       end
     else
-      local mantissa, exponent = frexp(value)
-      if mantissa ~= mantissa then
-        -- Encode as NaN
-        return "\xCB\xFF\xF8\x00\x00\x00\x00\x00\x00"
+      dbox[0] = value;
+      local bytes = cast("uint8_t*", dbox)
+      if bigEndian then
+        return char(0xCB,
+          bytes[0],
+          bytes[1],
+          bytes[2],
+          bytes[3],
+          bytes[4],
+          bytes[5],
+          bytes[6],
+          bytes[7])
+      else
+        return char(0xCB,
+          bytes[7],
+          bytes[6],
+          bytes[5],
+          bytes[4],
+          bytes[3],
+          bytes[2],
+          bytes[1],
+          bytes[0])
       end
-      local sign = 0
-      if mantissa < 0 then
-        sign = 0x80
-        mantissa = -mantissa
-      end
-      exponent = exponent + 0x3FE
-      mantissa = (mantissa * 2.0 - 1.0) * ldexp(0.5, 53)
-      return char(0xCB,
-        sign + floor(exponent / 0x10),
-        (exponent % 0x10) * 0x10 + floor(mantissa / 0x1000000000000),
-        floor(mantissa / 0x10000000000) % 0x100,
-        floor(mantissa / 0x100000000) % 0x100,
-        floor(mantissa / 0x1000000) % 0x100,
-        floor(mantissa / 0x10000) % 0x100,
-        floor(mantissa / 0x100) % 0x100,
-        mantissa % 0x100)
     end
   elseif t == "string" then
     local l = #value
@@ -265,6 +276,48 @@ local function decode(data, offset)
   elseif c == 0xc6 then
     local len = 5 + read32(data, offset + 2) % 0x100000000
     return buffer(len, sub(data, offset + 6, offset + len)), len
+  elseif c == 0xca then
+    if bigEndian then
+      copy(fbox, char(
+        byte(data, offset + 2),
+        byte(data, offset + 3),
+        byte(data, offset + 4),
+        byte(data, offset + 5)
+      ))
+    else
+      copy(fbox, char(
+        byte(data, offset + 5),
+        byte(data, offset + 4),
+        byte(data, offset + 3),
+        byte(data, offset + 2)
+      ))
+    end
+    return fbox[0], 9
+  elseif c == 0xcb then
+    if bigEndian then
+      copy(dbox, char(
+        byte(data, offset + 2),
+        byte(data, offset + 3),
+        byte(data, offset + 4),
+        byte(data, offset + 5),
+        byte(data, offset + 6),
+        byte(data, offset + 7),
+        byte(data, offset + 8),
+        byte(data, offset + 9)
+      ))
+    else
+      copy(dbox, char(
+        byte(data, offset + 9),
+        byte(data, offset + 8),
+        byte(data, offset + 7),
+        byte(data, offset + 6),
+        byte(data, offset + 5),
+        byte(data, offset + 4),
+        byte(data, offset + 3),
+        byte(data, offset + 2)
+      ))
+    end
+    return dbox[0], 9
   elseif c == 0xdc then
     return readarray(read16(data, offset + 2), data, offset, offset + 3)
   elseif c == 0xdd then
