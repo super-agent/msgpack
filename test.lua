@@ -164,7 +164,11 @@ local tests = {
     {[0]=0,[1]=1,[2]=2}, "\x83\x00\x00\x01\x01\x02\x02",
     maprep(15),        "\x8f\x00@\x01@\x02@\x03@\x04@\x05@\x06@\x07@\x08@\x09@\x0a@\x0b@\x0c@\x0d@\x0e@",
     maprep(16),        "\xde\x00\x10\x00@\x01@\x02@\x03@\x04@\x05@\x06@\x07@\x08@\x09@\x0a@\x0b@\x0c@\x0d@\x0e@\x0f@",
-    3.1415926535898,   "\xcb@\t!\xfbTD-(",
+    3.1415926535898,   "\xCB\x40\x09\x21\xFB\x54\x44\x2D\x28",
+    1/0,               "\xCA\x7F\x80\x00\x00",
+    -1/0,              "\xCA\xFF\x80\x00\x00",
+    0/0,               "\xCA\xFF\xC0\x00\x00",
+
 }
 
 local patt = string.rep("@", 10) .. "*"
@@ -172,7 +176,7 @@ local patt = string.rep("@", 10) .. "*"
 local function pretty(value)
   local t = type(value)
   if t == "number" then
-    if value ~= math.floor(value) then
+    if value ~= value or value ~= math.floor(value) or value == math.huge or value == -math.huge then
       return colorize("number", tostring(value))
     end
     if value < 0 then
@@ -197,6 +201,7 @@ for i = 1, #tests, 2 do
     print("Encode Pass: " .. pretty(input) .. " -> " .. pretty(output))
   else
     print("Encode Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual))
+    -- print(string.format("'" .. string.rep("\\x%02X", #actual) .. "'", string.byte(actual, 1, #actual)))
     return -1
   end
   input, output = output, input

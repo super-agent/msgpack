@@ -66,13 +66,49 @@ local function encode(value)
   elseif t == "boolean" then
     return value and "\xc3" or "\xc2"
   elseif t == "number" then
-    if value == huge then
-      -- Encode as Infinity
-      return "\xCB\x7F\xF0\x00\x00\x00\x00\x00\x00"
-    elseif value == -huge then
-      -- Encode as -Infinity
-      return "\xCB\xFF\xF0\x00\x00\x00\x00\x00\x00"
-    elseif floor(value) == value then
+    if value == huge or value == -huge or value ~= value then
+      -- Encode Infinity, -Infinity and NaN as floats
+      fbox[0] = value;
+      local bytes = cast("uint8_t*", fbox)
+      if bigEndian then
+        return char(0xCA,
+          bytes[0],
+          bytes[1],
+          bytes[2],
+          bytes[3])
+      else
+        return char(0xCA,
+          bytes[3],
+          bytes[2],
+          bytes[1],
+          bytes[0])
+      end
+    elseif floor(value) ~= value then
+      -- Encode other non-ints as doubles
+      dbox[0] = value;
+      local bytes = cast("uint8_t*", dbox)
+      if bigEndian then
+        return char(0xCB,
+          bytes[0],
+          bytes[1],
+          bytes[2],
+          bytes[3],
+          bytes[4],
+          bytes[5],
+          bytes[6],
+          bytes[7])
+      else
+        return char(0xCB,
+          bytes[7],
+          bytes[6],
+          bytes[5],
+          bytes[4],
+          bytes[3],
+          bytes[2],
+          bytes[1],
+          bytes[0])
+      end
+    else
       -- Encode as smallest integer type that fits
       if value >= 0 then
         if value < 0x80 then
@@ -111,30 +147,6 @@ local function encode(value)
           end
           return "\xd3" .. write32(high) .. write32(low)
         end
-      end
-    else
-      dbox[0] = value;
-      local bytes = cast("uint8_t*", dbox)
-      if bigEndian then
-        return char(0xCB,
-          bytes[0],
-          bytes[1],
-          bytes[2],
-          bytes[3],
-          bytes[4],
-          bytes[5],
-          bytes[6],
-          bytes[7])
-      else
-        return char(0xCB,
-          bytes[7],
-          bytes[6],
-          bytes[5],
-          bytes[4],
-          bytes[3],
-          bytes[2],
-          bytes[1],
-          bytes[0])
       end
     end
   elseif t == "string" then
@@ -292,7 +304,7 @@ local function decode(data, offset)
         byte(data, offset + 2)
       ))
     end
-    return fbox[0], 9
+    return fbox[0], 5
   elseif c == 0xcb then
     if bigEndian then
       copy(dbox, char(
