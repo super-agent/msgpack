@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/msgpack"
-  version = "2.2.1"
+  version = "2.3.0"
   description = "A pure lua implementation of the msgpack format."
   homepage = "https://github.com/creationix/msgpack-lua"
   keywords = {"codec", "msgpack"}
