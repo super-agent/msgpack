@@ -168,7 +168,6 @@ local tests = {
     1/0,               "\xCA\x7F\x80\x00\x00",
     -1/0,              "\xCA\xFF\x80\x00\x00",
     0/0,               "\xCA\xFF\xC0\x00\x00",
-
 }
 
 local patt = string.rep("@", 10) .. "*"

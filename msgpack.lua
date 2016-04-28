@@ -295,12 +295,7 @@ local function decode(data, offset)
     return buffer(bytes, sub(data, offset + 6, offset + len)), len
   elseif c == 0xca then
     if bigEndian then
-      copy(fbox, char(
-        byte(data, offset + 2),
-        byte(data, offset + 3),
-        byte(data, offset + 4),
-        byte(data, offset + 5)
-      ))
+      copy(fbox, sub(data, 2, 5))
     else
       copy(fbox, char(
         byte(data, offset + 5),
@@ -312,16 +307,7 @@ local function decode(data, offset)
     return fbox[0], 5
   elseif c == 0xcb then
     if bigEndian then
-      copy(dbox, char(
-        byte(data, offset + 2),
-        byte(data, offset + 3),
-        byte(data, offset + 4),
-        byte(data, offset + 5),
-        byte(data, offset + 6),
-        byte(data, offset + 7),
-        byte(data, offset + 8),
-        byte(data, offset + 9)
-      ))
+      copy(dbox, sub(data, 2, 9))
     else
       copy(dbox, char(
         byte(data, offset + 9),
