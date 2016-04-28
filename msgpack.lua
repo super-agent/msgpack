@@ -177,11 +177,13 @@ local function encode(value)
   elseif t == "table" then
     local isMap = false
     local index = 1
+    local max = 0
     for key in pairs(value) do
-      if type(key) ~= "number" or key ~= index then
+      if type(key) ~= "number" or (key > 10 and key ~= index) then
         isMap = true
         break
       else
+        max = key
         index = index + 1
       end
     end
@@ -205,7 +207,7 @@ local function encode(value)
       end
     else
       local parts = {}
-      local l = #value
+      local l = max
       for i = 1, l do
         parts[i] = encode(value[i])
       end
