@@ -28,6 +28,8 @@ before_install:
   - luarocks install luv
   - luarocks install luabitop
   - luarocks install --server=http://luarocks.org/dev luaffi
+  - curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh
+  - ./lit install creationix/pretty-print
 
 script:
   - lua test.lua
