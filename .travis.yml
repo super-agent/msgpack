@@ -1,20 +1,20 @@
 language: c
 sudo: false
 
-
 os:
   - linux
   # - osx
 
 env:
   matrix:
-    - LUA='luajit/2.0.4'
-    - LUA='lua/5.1.5'
-    - LUA='lua/5.2.4'
-    # - LUA='lua/5.3.2' # There is no bitop library for lua5.3
+    - LUA=luvit
+    - LUA=luajit/2.0.4
+    - LUA=lua/5.1.5
+    - LUA=lua/5.2.4
+    # - LUA=lua/5.3.2 # There is no bitop library for lua5.3
 
 before_install:
-  - cd .travis; source setenv.sh; cd -
+  - source .travis/setenv.sh
   - lit install luvit/pretty-print
 
 script:

@@ -1,10 +1,8 @@
-print(package.path)
-print(package.cpath)
-
-local encode = require('msgpack').encode
-local decode = require('msgpack').decode
-local colorize = require('deps.pretty-print').colorize
-local dump = require('deps.pretty-print').dump
+pcall(require, 'lit-loader')
+local encode = require('./msgpack').encode
+local decode = require('./msgpack').decode
+local colorize = require('pretty-print').colorize
+local dump = require('pretty-print').dump
 
 local function tabrep(num)
   local tab = {}
