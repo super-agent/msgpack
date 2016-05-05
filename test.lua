@@ -201,7 +201,7 @@ for i = 1, #tests, 2 do
   else
     print("Encode Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual))
     -- print(string.format("'" .. string.rep("\\x%02X", #actual) .. "'", string.byte(actual, 1, #actual)))
-    return -1
+    return os.exit(-1)
   end
   input, output = output, input
   local len
@@ -210,6 +210,6 @@ for i = 1, #tests, 2 do
     print("Decode Pass: " .. pretty(input) .. " -> " .. pretty(output))
   else
     print("Decode Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual) .. "\n  len:      " .. dump(len))
-    return -1
+    return os.exit(-1)
   end
 end
