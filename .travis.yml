@@ -1,6 +1,13 @@
 language: c
 sudo: false
 
+addons:
+  apt:
+    sources:
+    - kalakris-cmake
+    packages:
+    - cmake
+
 os:
   - linux
   # - osx
