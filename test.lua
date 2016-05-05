@@ -1,3 +1,6 @@
+print(package.path)
+print(package.cpath)
+
 local encode = require('msgpack').encode
 local decode = require('msgpack').decode
 local colorize = require('deps.pretty-print').colorize
