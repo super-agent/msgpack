@@ -17,12 +17,12 @@ env:
     - LUA='-lj 2.0.4'
     - LUA=' 5.1.5'
     - LUA=' 5.2.4'
-    - LUA=' 5.3.2'
+    # - LUA=' 5.3.2'
 
 before_install:
   - curl -L http://git.io/lenv | perl
   - source ~/.lenvrc
-  - lenv fetch
+  # - lenv fetch
   - lenv install$LUA
   - lenv use$LUA
   - luarocks install luv
