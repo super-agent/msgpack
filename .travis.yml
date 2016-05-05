@@ -1,12 +1,6 @@
 language: c
 sudo: false
 
-addons:
-  apt:
-    sources:
-    - kalakris-cmake
-    packages:
-    - cmake
 
 os:
   - linux
@@ -21,9 +15,6 @@ env:
 
 before_install:
   - cd .travis; source setenv.sh
-  - luarocks install luv
-  - if [[ ${LUA:0:1} == " " ]]; then luarocks install luabitop; fi
-  - if [[ ${LUA:0:1} == " " ]]; then luarocks install --server=http://luarocks.org/dev luaffi; fi
   - lit install luvit/pretty-print
 
 script:
