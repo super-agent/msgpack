@@ -22,7 +22,7 @@ env:
 before_install:
   - curl -L http://git.io/lenv | perl
   - source ~/.lenvrc
-  # - lenv fetch
+  - lenv fetch
   - lenv install$LUA
   - lenv use$LUA
   - luarocks install luv
