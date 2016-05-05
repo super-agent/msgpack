@@ -27,7 +27,7 @@ before_install:
   - source .travis/setenv_lua.sh
   - luarocks install luv
   - luarocks install luabitop
-  - luarocks install luaffi
+  - luarocks install --server=http://luarocks.org/dev luaffi
 
 script:
   - lua test.lua
