@@ -1,4 +1,7 @@
 # msgpack-lua
+
+[![Build Status](https://travis-ci.org/super-agent/msgpack.svg?branch=master)](https://travis-ci.org/super-agent/msgpack)
+
 Luajit implementation of msgpack format
 
 Currently this module implements a subset of the msgpack v5 protocol.
