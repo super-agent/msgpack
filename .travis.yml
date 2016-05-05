@@ -14,22 +14,17 @@ os:
 
 env:
   matrix:
-    - LUA='-lj 2.0.4'
-    - LUA=' 5.1.5'
-    - LUA=' 5.2.4'
-    # - LUA=' 5.3.2'
+    - LUA='luajit/2.0.4'
+    - LUA='lua/5.1.5'
+    - LUA='lua/5.2.4'
+    - LUA='lua/5.3.2'
 
 before_install:
-  - curl -L http://git.io/lenv | perl
-  - source ~/.lenvrc
-  - lenv fetch
-  - lenv install$LUA
-  - lenv use$LUA
+  - cd .travis; source setenv.sh
   - luarocks install luv
   - if [[ ${LUA:0:1} == " " ]]; then luarocks install luabitop; fi
   - if [[ ${LUA:0:1} == " " ]]; then luarocks install --server=http://luarocks.org/dev luaffi; fi
-  - curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh
-  - ./lit install luvit/pretty-print
+  - lit install luvit/pretty-print
 
 script:
   - lua test.lua
