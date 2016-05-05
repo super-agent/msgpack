@@ -31,7 +31,7 @@ before_install:
   - curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh && mkdir -p $HOME/.local/bin/$HOME/.local/bin/ && mv lit $HOME/.local/bin/
 
 script:
-  - ./lit install luvit/pretty-print
+  - lit install luvit/pretty-print
   - lua test.lua
 
 notifications:
