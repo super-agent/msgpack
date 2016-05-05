@@ -14,7 +14,7 @@ env:
     - LUA='lua/5.3.2'
 
 before_install:
-  - cd .travis; source setenv.sh
+  - cd .travis; source setenv.sh; cd -
   - lit install luvit/pretty-print
 
 script:
