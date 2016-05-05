@@ -26,9 +26,9 @@ before_install:
   - lenv install$LUA
   - lenv use$LUA
   - luarocks install luv
-  - luarocks install luabitop
-  - luarocks install --server=http://luarocks.org/dev luaffi
-  - curl -L https://github.com/luvit/lit/raw/master/get-lit.sh
+  - if [[ ${LUA:0:1} == " " ]]; then luarocks install luabitop; fi
+  - if [[ ${LUA:0:1} == " " ]]; then luarocks install --server=http://luarocks.org/dev luaffi; fi
+  - curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh
   - ./lit install luvit/pretty-print
 
 script:
