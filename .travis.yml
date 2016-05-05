@@ -28,10 +28,10 @@ before_install:
   - luarocks install luv
   - luarocks install luabitop
   - luarocks install --server=http://luarocks.org/dev luaffi
-  - curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh
-  - ./lit install luvit/pretty-print
+  - curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh && mv lit $HOME/.local/bin/
 
 script:
+  - ./lit install luvit/pretty-print
   - lua test.lua
 
 notifications:
