@@ -7,7 +7,7 @@ os:
 
 env:
   matrix:
-    - LUA=luvit
+    - LUA=luvit/2.10.1
     - LUA=luajit/2.0.4
     - LUA=lua/5.1.5
     - LUA=lua/5.2.4
