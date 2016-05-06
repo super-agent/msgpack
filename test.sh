@@ -16,4 +16,8 @@ else
   source .travis/setenv.sh
   echo "Running tests with: $(which lua)"
   lua test.lua
+  if [[ "$LUA" != luvit-* ]]; then
+    luacov
+    cat luacov.report.out
+  fi
 fi

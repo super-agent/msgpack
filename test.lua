@@ -1,4 +1,7 @@
-if not _G.process then require 'lit-loader' end
+if not _G.process then
+  require 'luacov'
+  require 'lit-loader'
+end
 local encode = require('./msgpack').encode
 local decode = require('./msgpack').decode
 local colorize = require('pretty-print').colorize

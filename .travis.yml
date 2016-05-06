@@ -20,6 +20,8 @@ before_install:
 
 script:
   - lua test.lua
+  - if [[ "$LUA" != luvit-* ]]; then luacov; cat luacov.report.out; fi
+
 
 notifications:
   email:
