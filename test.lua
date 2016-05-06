@@ -1,37 +1,8 @@
 if not _G.process then require 'lit-loader' end
 local encode = require('./msgpack').encode
 local decode = require('./msgpack').decode
--- local colorize = require('pretty-print').colorize
--- local dump = require('pretty-print').dump
-
-local function colorize(_, string)
-  return string
-end
-local function dump(val)
-  if type(val) == "table" then
-    local str = "{"
-    local second = false
-    local num = 0
-    for k, v in pairs(val) do
-      num = num + 1
-      if num > 20 then
-        str = str .. ",..."
-        break
-      end
-      if second then
-        str = str .. ","
-      end
-      second = true
-      if k == num then
-        str = str .. dump(v)
-      else
-        str = str .. "[" .. dump(k) .. "]=" .. dump(v)
-      end
-    end
-    return str .. "}"
-  end
-  return tostring(val)
-end
+local colorize = require('pretty-print').colorize
+local dump = require('pretty-print').dump
 
 local function tabrep(num)
   local tab = {}
@@ -222,12 +193,39 @@ local function pretty(value)
   return dump(value)
 end
 
-print("Encoding tests...")
+-- Simple pretty printer that only preserves the semantic meaning for comparisons.
+local function tostructure(a)
+  if type(a) == "userdata" then
+    return "userdata"
+  end
+  if type(a) ~= "table" then return tostring(a) end
+  local parts = {}
+  local keys = {}
+  local j = 0
+  for k in pairs(a) do
+    j = j + 1
+    keys[j] = k
+  end
+  table.sort(keys)
+  for i = 1, #keys do
+    local k = keys[i]
+    local v = a[k]
+    if k == i then
+      parts[i] = tostructure(v)
+    else
+      parts[i] = tostructure(k)..'='..tostructure(v)
+    end
+  end
+  return "{"..table.concat(parts,",").."}"
+end
+
+print("Running tests...")
 for i = 1, #tests, 2 do
+  collectgarbage()
   local input, output = tests[i], tests[i + 1]
   local actual = encode(input)
   if actual == output then
-    print("Encode Pass: " .. pretty(input) .. " -> " .. pretty(output))
+    -- print("Encode Pass: " .. pretty(input) .. " -> " .. pretty(output))
   else
     print("Encode Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual))
     -- print(string.format("'" .. string.rep("\\x%02X", #actual) .. "'", string.byte(actual, 1, #actual)))
@@ -236,10 +234,11 @@ for i = 1, #tests, 2 do
   input, output = output, input
   local len
   actual, len = decode(input, 0)
-  if dump(actual) == dump(output) and len == #input then
-    print("Decode Pass: " .. pretty(input) .. " -> " .. pretty(output))
+  if tostructure(actual) == tostructure(output) and len == #input then
+    -- print("Decode Pass: " .. pretty(input) .. " -> " .. pretty(output))
   else
     print("Decode Fail: " .. pretty(input) .. "\n  expected: " .. pretty(output) .. "\n  actual:   " .. pretty(actual) .. "\n  len:      " .. dump(len))
     return os.exit(-1)
   end
 end
+print("All tests pass!")
