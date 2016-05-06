@@ -20,6 +20,12 @@ local function maprep(num)
   return map
 end
 
+local ffi = require'ffi'
+local function buffer(string)
+  return ffi.new("unsigned char[?]", #string, string)
+end
+
+
 local tests = {
     -- Nil format stores nil
     nil,                "\xc0",
@@ -144,6 +150,12 @@ local tests = {
     -- str 32 stores a byte array whose length is upto (2^32)-1 bytes
     string.rep("@", 0x10000), "\xdb\x00\x01\x00\x00" .. string.rep("@", 0x10000),
 
+    buffer("\1\2\3"),  "\xC4\x03\1\2\3",
+    buffer(string.rep("@", 0x1f)), "\xC4\x1f" .. string.rep("@", 0x1f),
+    buffer(string.rep("@", 0xff)), "\xC4\xff" .. string.rep("@", 0xff),
+    -- buffer(string.rep("@", 0x100)), "\xC5\x01\x00" .. string.rep("@", 0x100),
+    -- buffer(string.rep("@", 0xffff)), "\xC5\xff\xff" .. string.rep("@", 0xffff),
+
     -- fixarray stores an array whose length is upto 15 elements:
     {},                 "\x90",
     {0},                "\x91\x00",
@@ -195,8 +207,10 @@ end
 
 -- Simple pretty printer that only preserves the semantic meaning for comparisons.
 local function tostructure(a)
-  if type(a) == "userdata" then
-    return "userdata"
+  if type(a) == "cdata" then
+    local l = ffi.sizeof(a)
+    local str = ffi.string(a, l)
+    return "*"..str
   end
   if type(a) ~= "table" then return tostring(a) end
   local parts = {}
