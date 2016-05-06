@@ -7,11 +7,12 @@ os:
 
 env:
   matrix:
-    - LUA=luvit/2.10.1
-    - LUA=luajit/2.0.4
-    - LUA=lua/5.1.5
-    - LUA=lua/5.2.4
-    # - LUA=lua/5.3.2 # There is no bitop library for lua5.3
+    - LUA=luvit-2
+    - LUA=luajit-2.0
+    - LUA=luajit-2.1
+    - LUA=lua-5.1
+    - LUA=lua-5.2
+    # - LUA=lua-5.3 # There is no bitop library for lua5.3
 
 before_install:
   - source .travis/setenv.sh

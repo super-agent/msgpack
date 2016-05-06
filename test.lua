@@ -1,4 +1,4 @@
-pcall(require, 'lit-loader')
+if not _G.process then require 'lit-loader' end
 local encode = require('./msgpack').encode
 local decode = require('./msgpack').decode
 local colorize = require('pretty-print').colorize
