@@ -1,8 +1,37 @@
 if not _G.process then require 'lit-loader' end
 local encode = require('./msgpack').encode
 local decode = require('./msgpack').decode
-local colorize = require('pretty-print').colorize
-local dump = require('pretty-print').dump
+-- local colorize = require('pretty-print').colorize
+-- local dump = require('pretty-print').dump
+
+local function colorize(_, string)
+  return string
+end
+local function dump(val)
+  if type(val) == "table" then
+    local str = "{"
+    local second = false
+    local num = 0
+    for k, v in pairs(val) do
+      num = num + 1
+      if num > 20 then
+        str = str .. ",..."
+        break
+      end
+      if second then
+        str = str .. ","
+      end
+      second = true
+      if k == num then
+        str = str .. dump(v)
+      else
+        str = str .. "[" .. dump(k) .. "]=" .. dump(v)
+      end
+    end
+    return str .. "}"
+  end
+  return tostring(val)
+end
 
 local function tabrep(num)
   local tab = {}
